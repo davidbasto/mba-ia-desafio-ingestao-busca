@@ -1,29 +1,21 @@
-PROMPT_TEMPLATE = """
-CONTEXTO:
-{contexto}
+from langchain_postgres.vectorstores import PGVector
+from config import get_embeddings, DATABASE_URL, COLLECTION_NAME
 
-REGRAS:
-- Responda somente com base no CONTEXTO.
-- Se a informação não estiver explicitamente no CONTEXTO, responda:
-  "Não tenho informações necessárias para responder sua pergunta."
-- Nunca invente ou use conhecimento externo.
-- Nunca produza opiniões ou interpretações além do que está escrito.
+def get_vector_store():
+    embeddings = get_embeddings()
+    db_url_clean = DATABASE_URL.strip("'").strip('"')
+    collection_name_clean = COLLECTION_NAME.strip("'").strip('"')
 
-EXEMPLOS DE PERGUNTAS FORA DO CONTEXTO:
-Pergunta: "Qual é a capital da França?"
-Resposta: "Não tenho informações necessárias para responder sua pergunta."
+    vector_store = PGVector(
+        embeddings=embeddings,
+        collection_name=collection_name_clean,
+        connection=db_url_clean,
+        use_jsonb=True
+    )
+    return vector_store
 
-Pergunta: "Quantos clientes temos em 2024?"
-Resposta: "Não tenho informações necessárias para responder sua pergunta."
-
-Pergunta: "Você acha isso bom ou ruim?"
-Resposta: "Não tenho informações necessárias para responder sua pergunta."
-
-PERGUNTA DO USUÁRIO:
-{pergunta}
-
-RESPONDA A "PERGUNTA DO USUÁRIO"
-"""
-
-def search_prompt(question=None):
-    pass
+def search_documents(query: str, k: int = 10):
+    vector_store = get_vector_store()
+    # Busca por similaridade retornando score
+    results = vector_store.similarity_search_with_score(query, k=k)
+    return results
